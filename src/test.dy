@@ -1,1 +1,2 @@
-x: int = 5b;
+x: int = 5;
+username: string = "Hello, \"Devon\"";

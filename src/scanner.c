@@ -52,7 +52,7 @@ void advance(struct scanner *dyscanner, size_t n) {
         }
 }
 
-int get_identifier(struct scanner *dyscanner) {
+int get_identifier_length(struct scanner *dyscanner) {
         int start_pos = dyscanner->cursor;
         const char *start = &dyscanner->source[start_pos];
         while (iswordchar(*start++)) {
@@ -70,9 +70,8 @@ void recover(struct scanner *dyscanner) {
         }
 }
 
-int get_number(struct scanner *dyscanner, bool *syntax_error) {
+int get_number_length(struct scanner *dyscanner, bool *syntax_error) {
         int start_pos = dyscanner->cursor;
-        // const char *ch = &dyscanner->source[start_pos];
 
         while (isdigit(dyscanner->source[dyscanner->cursor])) {
                 advance(dyscanner, 1);
@@ -87,9 +86,67 @@ int get_number(struct scanner *dyscanner, bool *syntax_error) {
         return dyscanner->cursor - start_pos;
 }
 
+void set_dytext(struct dytext *text, const char *literal, size_t n) {
+        text->text = realloc(text->text, n+1);
+        text->length = n;
+        strlcpy(text->text, literal, n+1);
+}
+
+void handle_keyword(struct scanner *dyscanner, struct dytext *text,
+                    const char *keyword, size_t n) {
+        set_dytext(text, keyword, n);
+        advance(dyscanner, n);
+}
+
+void handle_identifier(struct scanner *dyscanner, struct dytext *text,
+                       const char *start) {
+        int len = get_identifier_length(dyscanner);
+        set_dytext(text, start, len);
+}
+
+void handle_number(struct scanner *dyscanner, struct dytext *text,
+                   const char *start, enum token_type *type, bool *serror) {
+        int len = get_number_length(dyscanner, serror);
+        text->text = realloc(text->text, len+1);
+        text->length = len;
+        strncpy(text->text, start, len);
+
+        if (*serror)
+                *type = TOKEN_ERROR;
+        else
+                *type = TOKEN_NUMBER;
+}
+
+int isstring(struct scanner *dyscanner, int *len) {
+        advance(dyscanner, 1);
+        const char *current = &dyscanner->source[dyscanner->cursor];
+        *len = 1;
+
+        while (*current != '\n' && *current != '\0') {
+                if (*current == '"' && *(current - 1) != '\\') {
+                        (*len)++;
+                        advance(dyscanner, 1);
+                        return 1;
+                }
+
+                current++;
+                advance(dyscanner, 1);
+                (*len)++;
+        }
+
+        return 0;
+}
+
+void handle_string(struct dytext *text, const char *start, 
+                  enum token_type *type, size_t len) {
+        set_dytext(text, start, len);
+        *type = TOKEN_STRING_LITERAL;
+}
+
 enum token_type get_token(struct scanner *dyscanner, struct dytext *text) {
         const char *start = &dyscanner->source[dyscanner->cursor];
         enum token_type type;
+        int len = 0;
         bool syntax_error = false;
 
         memset(text->text, 0, text->length);
@@ -101,40 +158,38 @@ enum token_type get_token(struct scanner *dyscanner, struct dytext *text) {
                 break;
         case 'i':
                 if (match(start, "int", 3)) {
-                        text->text = realloc(text->text, 4);
-                        text->length = 3;
-                        strcpy(text->text, "int");
-                        advance(dyscanner, 3);
+                        handle_keyword(dyscanner, text, "int", 3);
                         type = TOKEN_INT;
-                } else {
-                        int len = get_identifier(dyscanner);
-                        text->text = realloc(text->text, len+1);
-                        text->length = len;
-                        strncpy(text->text, start, len);
-                        type = TOKEN_IDENT;
+                        break;
                 }
-                break;
+                goto identifier;
+        case 's':
+                if (match(start, "string", 6)) {
+                        handle_keyword(dyscanner, text, "string", 6);
+                        type = TOKEN_STRING;
+                        break;
+                }
+                goto identifier;
+        case '"':
+                if (isstring(dyscanner, &len)) {
+                        handle_string(text, start, &type, len);
+                        break;
+                } else {
+                        dy_print_error(dyscanner, "unterminated string");
+                        type = TOKEN_ERROR;
+                }
         case ':':
-                text->text = realloc(text->text, 2);
-                text->text[0] = ':';
-                text->text[1] = '\0';
-                text->length = 1;
+                set_dytext(text, ":", 1);
                 advance(dyscanner, 1);
                 type = TOKEN_COLON;
                 break;
         case ';':
-                text->text = realloc(text->text, 2);
-                text->text[0] = ';';
-                text->text[1] = '\0';
-                text->length = 1;
+                set_dytext(text, ";", 1);
                 advance(dyscanner, 1);
                 type = TOKEN_SEMICOLON;
                 break;
         case  '=':
-                text->text = realloc(text->text, 2);
-                text->text[0] = '=';
-                text->text[1] = '\0';
-                text->length = 1;
+                set_dytext(text, "=", 1);
                 advance(dyscanner, 1);
                 type = TOKEN_EQUAL;
                 break;
@@ -143,21 +198,10 @@ enum token_type get_token(struct scanner *dyscanner, struct dytext *text) {
                 break;
         default:
                 if (isalpha(*start)) {
-                        int len = get_identifier(dyscanner);
-                        text->text = realloc(text->text, len+1);
-                        text->length = len;
-                        strncpy(text->text, start, len);
-                        type = TOKEN_IDENT;
+                        goto identifier;
                 } else if (isdigit(*start)) {
-                        int len = get_number(dyscanner, &syntax_error);
-                        text->text = realloc(text->text, len+1);
-                        text->length = len;
-                        strncpy(text->text, start, len);
-
-                        if (syntax_error)
-                                type = TOKEN_ERROR;
-                        else
-                                type = TOKEN_NUMBER;
+                        handle_number(dyscanner, text, start,
+                                      &type, &syntax_error);
                 } else {
                         dy_print_error(dyscanner, "invalid character");
                         type = TOKEN_ERROR;
@@ -165,5 +209,12 @@ enum token_type get_token(struct scanner *dyscanner, struct dytext *text) {
                 break;
         }
 
+        goto done;
+
+identifier:
+        handle_identifier(dyscanner, text, start);
+        type = TOKEN_IDENT;
+
+done:
         return type;
 }
