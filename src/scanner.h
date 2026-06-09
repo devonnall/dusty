@@ -63,11 +63,11 @@ struct token {
         const char *semantic_value;
 };
 
-enum token_type get_token(struct scanner *dy_sacnner, struct dytext *text);
 struct token make_token(enum token_type type, char *dytext);
 void tokens_append(struct token dytoken);
 
+int tokenize(const char *source);
+
 extern const char *dyfile;
-extern bool errors;
 
 #endif // DUSTY_SCANNER_H
