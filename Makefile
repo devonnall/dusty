@@ -1,5 +1,5 @@
 CC := clang
-CFLAGS := -Wall -Wextra -Wno-misleading-indentation -I./include -g
+CFLAGS := -Wall -Wextra -Wno-misleading-indentation -I./include -fsanitize=address -fno-omit-frame-pointer -g
 
 SRCS := ./src/main.c ./src/dscanner.c ./src/fileio.c
 TARGET := ./bin/dusty

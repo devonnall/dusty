@@ -32,7 +32,7 @@ struct Token {
     int length;
     int line;
     int col;
-    const char *lexeme;
+    char *lexeme;
 };
 
 struct TokenList {
@@ -41,6 +41,7 @@ struct TokenList {
     int capacity;
 };
 
+void token_list_free(struct TokenList *tokens);
 int tokenize(const char *source, struct TokenList *tokens);
 
 #endif // DUSTY_SCANNER_H

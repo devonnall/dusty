@@ -12,7 +12,7 @@ int get_file_length(const char *filename) {
                 return -1;
 }
 
-int read_file(const char *filename, const char **buffer) {
+int read_file(const char *filename, char **buffer) {
         FILE *file = NULL;
         char *content = NULL;
         int len;

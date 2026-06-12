@@ -12,7 +12,7 @@ int main(int argc, char **argv) {
     }
 
     dyfile = argv[1];
-    const char *source = NULL;
+    char *source = NULL;
 
     if (read_file(dyfile, &source) != 0) {
         printf("error: failed to read file\n");
@@ -25,6 +25,9 @@ int main(int argc, char **argv) {
         printf("errors encountered during tokenization\n");
         return 1;
     }
+
+    free(source);
+    token_list_free(&tokens);
 
     return 0;
 }

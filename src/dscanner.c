@@ -16,7 +16,7 @@ static const char *token_types[] = {
 };
 
 static const char *keywords[] = {
-    "int", "float", "double", "char", "string", "if", "else", "fn", "for", "while", "return", "break", "continue
+    "int", "float", "double", "char", "string", "if", "else", "fn", "for", "while", "return", "break", "continue"
 };
 
 static void
@@ -53,6 +53,13 @@ token_list_push(struct TokenList *list, struct Token token) {
     
     list->tokens[list->count] = token;
     list->count++;
+}
+
+void
+token_list_free(struct TokenList *list) {
+    for (int i = 0; i < list->count; i++) {
+        free(list->tokens[i].lexeme);
+    }
 }
 
 static bool
@@ -107,7 +114,7 @@ add_token(const char *str, struct Scanner *scanner, struct TokenList *tokens, en
         .type = type,
         .start = scanner->cursor,
         .length = n,
-        .line = scanner->line;
+        .line = scanner->line,
         .col = scanner->column,
         .lexeme = strdup(str)
     };
@@ -130,7 +137,7 @@ add_custom(struct Scanner *scanner, struct TokenList *tokens, enum TokenType typ
         .type = type,
         .start = scanner->cursor,
         .length = len,
-        .line = scanner->line;
+        .line = scanner->line,
         .col = scanner->column,
         .lexeme = strndup(&scanner->source[scanner->cursor], len)
     };
@@ -152,8 +159,9 @@ add_alphanum(struct Scanner *scanner, struct TokenList *tokens) {
 
     for (int i = 0; i < n; i++) {
         if (match(str, keywords[i], strlen(keywords[i]))) {
-            const char *keyword = strndup(keywords[i], strlen(keywords[i]));
+            char *keyword = strndup(keywords[i], strlen(keywords[i]));
             add_token(keyword, scanner, tokens, (enum TokenType)(i + 1));
+            free(keyword);
             return;
         }
     }
@@ -211,8 +219,8 @@ add_string_constant(struct Scanner *scanner, struct TokenList *tokens) {
         .type = TOKEN_STRING_CONSTANT,
         .start = scanner->cursor,
         .length = len,
-        .start_col = scanner->column,
-        .end_col = scanner->column + len - 1,
+        .line = scanner->line,
+        .col = scanner->column,
         .lexeme = strndup(&scanner->source[scanner->cursor], len)
     };
 
