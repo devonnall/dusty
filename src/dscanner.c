@@ -7,7 +7,7 @@
 
 static const char *token_types[] = {
     "eof", "int", "float", "double", "char", "string", "if", "else", "function", "for", "while",
-    "return", "break", "l_paren", "r_paren", "l_brace", "r_brace", "not", "not_equal", 
+    "return", "break", "continue", "l_paren", "r_paren", "l_brace", "r_brace", "not", "not_equal", 
     "less", "less_equal", "less_less", "greater", "greater_equal", "greater_greater", "comma", 
     "mul", "mul_equal", "div", "div_equal", "plus", "plus_equal", "plus_plus", "minus", "minus_equal", 
     "minus_minus", "mod", "mod_equal", "and", "and_equal", "and_and", "or", "or_equal", "or_or", 
@@ -16,7 +16,7 @@ static const char *token_types[] = {
 };
 
 static const char *keywords[] = {
-    "int", "float", "double", "char", "string", "if", "else", "fn", "for", "while", "return", "break"
+    "int", "float", "double", "char", "string", "if", "else", "fn", "for", "while", "return", "break", "continue
 };
 
 static void
